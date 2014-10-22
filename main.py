@@ -4,6 +4,8 @@ from flask import Request
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import math
+from pylab import savefig
+
 
 class Gibbs():
 
@@ -13,6 +15,7 @@ class Gibbs():
     self.data = 0
     self.sigma = 2
     self.lam = 10
+    self.iterations = 2000
     #self.mu defined in self.generate()
 
   def generate(self):
@@ -36,10 +39,10 @@ class Gibbs():
 
 
     self.data = points
-    #return points
     self.mu = [np.array([i]) for i in self.mu]
     #self.plot(self.data,self.mu)
     #plt.show()
+    return points
 
   # get data as if it is observed without clusters
   def getData(self,data):
@@ -52,8 +55,8 @@ class Gibbs():
       # assuming equally probable cluster assingment prior
       z_dist = [np.exp(-0.5*pow(np.linalg.norm(point - mu_k),2)) for mu_k in mu]
       z_dist = list(z_dist/sum(z_dist))
-      z_assignment.append((point,z_dist.index(max(z_dist))))
-
+      cluster = [j for j in np.random.multinomial(1,z_dist)]
+      z_assignment.append((point,cluster.index(max(cluster))))
     return z_assignment
 
   #draw mxiture probabilities : mu= nk/sigma2/n/sigma2+ 1/lambda2 * mean(xk)
@@ -66,37 +69,41 @@ class Gibbs():
       num = n_k*pow(self.sigma,-2)
       denom = num + pow(self.lam,-2)
       mu_k = x_bar_k *num /(num+denom)
-      sigma_k = 1/(n_k*pow(self.sigma,-2)  + pow(self.lam,-2))
-      mu[k], sigma[k] = [mu_k,np.array([[0.0,0.0]])][np.isnan(mu_k).any()] ,math.sqrt(sigma_k)
-
+      sigma_k = math.sqrt(1/(n_k*pow(self.sigma,-2)  + pow(self.lam,-2)))
+      mu[k], sigma[k] = [sigma_k*np.random.randn() + mu_k,np.array([[0.0,0.0]])][np.isnan(mu_k).any()] ,sigma_k
     return mu,sigma
 
-  def sampler(self):
-    data,log_likelihood_old = self.data, 1
+  def sampler(self, data):
+    data,log_likelihood_old = data, 1
     mu = np.random.multivariate_normal((0,0),np.matrix([[100,0],[0,100]]),size= self.num_clust)
 
     plt.hold(True)
     plt.figure(1)
-    plt.subplot(121)
-    self.plot(self.data,self.mu)
+    original = plt.subplot(121)
+    self.plot(original, self.data,self.mu)
+    #savefig('foo.png')
 
-    for i in range(1000):
+    for i in range(self.iterations):
       data = self.drawAssignments(data,mu)
       mu,sigma = self.drawDistribution(data)
 
       log_likelihood_new = self.getLikelihood(data,mu,sigma)
-      if math.fabs(log_likelihood_old -log_likelihood_new) < 1e-200:
-        print log_likelihood_new, log_likelihood_old
+      delta = log_likelihood_old - log_likelihood_new
+      if math.fabs(delta) < 1e-50:
         break
       else:
         log_likelihood_old= log_likelihood_new
 
 
-      if i%100 == 0:
+      if i%1000 == 0:
         print "\nsampling ... \n"
-        plt.subplot(122)
-        self.plot(data,mu)
-        plt.show()
+        print 'Log-Likelihood (new, delta): ', log_likelihood_new, delta
+
+    temp = plt.subplot(122)
+    self.plot(temp,data,mu)
+    plt.suptitle('Left : Original Data Points\nRight: Gibbs Sampled Clusters (Number of Clusters = %s)'%self.num_clust)
+    savefig('plot.jpeg')
+    plt.show()
 
   def getLikelihood(self,data,mu,sigma):
     log = 0
@@ -113,22 +120,21 @@ class Gibbs():
     return log
 
 
-  def plot(self, data,mu):
+  def plot(self,handle, data,mu):
     colors= cm.rainbow(np.array(range(0,self.num_clust*25,25)))
     #plot points
     for datum in data:
       x,y,cluster_color = datum[0][0][0], datum[0][0][1], colors[datum[1]] # this 0 is because it is in matrix format
-      plt.scatter(x,y,c=cluster_color, s= 20)
+      handle.scatter(x,y,c=cluster_color, s= 20)
 
     #plot centers
     for k,mu_k in enumerate(mu):
       x,y = mu_k[0][0],mu_k[0][1]
       print x,y,k
-      plt.scatter(x,y,c=colors[k], s = 100.0)
+      handle.scatter(x,y,c=colors[k], s = 100.0)
 
   def demo(self):
-    self.generate()
-    self.sampler()
+    self.sampler(self.generate())
 
 string = '''
 app=Flask(__name__)

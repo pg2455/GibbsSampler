@@ -1,0 +1,34 @@
+\documentclass{article}
+\input{preamble}
+\usetikzlibrary{fit}
+\usetikzlibrary{calc}
+\usepackage{graphicx}
+
+\usepackage{algorithmic}
+\usepackage{amstext}
+\usepackage{tikz}
+\usetikzlibrary{arrows,decorations.pathmorphing,fit,positioning}
+
+\newcommand{\dir}{\text{Dirichlet}}
+\newcommand{\mult}{\text{Multinomial}}
+
+
+\begin{document}
+
+\begin{center}
+	\textbf{Gibbs Sampler} \\
+	Prateek Gupta \\
+	\today
+\end{center}
+
+\textbf{Reading response}
+
+I got a burning phase of 1000 iterations after which change in log likelihood was of only 2.00 while the total log likelihood was around -400.0. Not going beyond the computing capacity I took number of clusters as 10 and sampled total of 100 points. The end result indicates that it can recognize only fewer number of clusters. It seems like when there is not much data from each clusters it groups those clusters. This can be interpreted as hierarchy on groups.  My guess is that more number of points per cluster will result in better clustering.  
+
+\begin{figure}
+	\includegraphics[width=\linewidth]{plot}
+	\caption{No. of Iterations : 3000, Burnin : 1000, No. of Points = 100, No. of Clusters = 10}
+\end{figure}	
+
+\end{document}
+
